@@ -1,0 +1,50 @@
+#! /bin/sh
+# installed service name
+INSTALL_SERVICE_NAME=VOIPAdapter
+
+cd /service
+
+if [ "$(id -u)" != "0" ]; 
+   then
+   	sudo /usr/local/bin/svc -d $INSTALL_SERVICE_NAME
+   else
+	sudo /usr/local/bin/svc -d $INSTALL_SERVICE_NAME
+fi
+
+###########################
+function CheckDown()
+{
+time=$1
+shift
+ret=0
+sleep $time
+for Process in $@
+{
+	s_pid=$(pgrep $Process -f)
+	if [ "$s_pid" != "" ]
+	then
+		sudo kill -9 $s_pid
+	fi
+
+	s_pid=$(pgrep $Process -f)
+	if [ "$s_pid" != "" ]
+	then
+		echo "Attention:The Process $Process is Stopped Unsuccessfully!!!"
+		ret=1
+	else
+		echo "Congratulation,The Process $Process Has Been Stopped Successfully."
+	fi
+}
+return $ret
+}
+
+sleep 3
+svstat $INSTALL_SERVICE_NAME
+
+if [ $? != 0 ]
+then
+	exit 1
+else
+	exit 0
+fi
+###########################

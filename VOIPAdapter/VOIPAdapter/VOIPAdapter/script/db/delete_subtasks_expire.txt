@@ -1,0 +1,16 @@
+show variables like 'event_scheduler';
+set global event_scheduler=1;
+
+drop procedure if exists p_delete_subtasks_expire;
+create procedure `p_delete_subtasks_expire`()
+begin
+	delete t2 from subtasks t1, engine_merge t2 where t1.ID=t2.FileID and t1.Status>=100;
+    delete t2 from subtasks t1, model_result t2 where t1.ID=t2.FileID and t1.Status>=100;
+    delete t2 from subtasks t1, engine_result t2 where t1.ID=t2.FileID and t1.Status>=100;
+    delete t1 from subtasks t1 where t1.Status>=100;
+end;
+
+drop event if exists e_delete_subtasks_expire;
+create event if not exists e_delete_subtasks_expire
+on schedule every 1 day on completion preserve enable
+do call p_delete_subtasks_expire();

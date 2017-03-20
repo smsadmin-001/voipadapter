@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<project name="AutoBuild" default="clean" basedir=".">
+	<property file="build.properties" />
+	<property name="dest.dir" value="${deploy.dir}/${deploy.subdir.name}" />
+	<property name="classes.dir" value="${dest.dir}/classes" />
+	<property name="bin.dir" value="${dest.dir}/bin" />
+	<property name="jar_name" value="${bin.dir}/${build.name}.jar" />
+	<property name="lib.dir" value="${basedir}/lib" />
+	<property name="destLib.dir" value="${dest.dir}/lib" />
+
+	<!-- ================================= 
+	定义编译时需要用到的JAR包
+	 ================================= -->
+	<path id="compile.classpath">
+		<fileset dir="${lib.dir}">
+			<include name="**/*.jar" />
+		</fileset>
+		<fileset dir="${jdklib.dir}">
+			<include name="**/*.jar" />
+		</fileset>
+	</path>
+
+	<!-- ================================== 
+	定义源码包的具体路径(不包括测试代码包)
+	================================== -->
+	<path id="src.path">
+		<path location="${src.dir}" />
+	</path>
+
+	<!-- - - - - - - - - - - - - - - - - 
+	target: info                      
+	- - - - - - - - - - - - - - - - - -->
+	<target name="info" description="--> 打印环境信息">
+		<echo message="${ant.version}" />
+		<echo message="Ant.Home      = ${ant.home}" />
+		<echo message="Java Home     = ${java.home}" />
+		<echo message="Java Version  = ${java.version}" />
+		<echo message="Project Home src = ${src.dir},${src2.dir},${src3.dir}" />
+		<echo message="Project Deploy Dir  = ${dest.dir}" />
+		<echo message="javac debug	= ${compile.debug}" />
+		<echo message="javac deprecation = ${compile.deprecation}" />
+		<echo message="javac encode	= ${compile.encode}" />
+		<echo message="javac args	= ${compile.arg1}" />
+		<echo message="javac optimize	= ${compile.optimize}" />
+		<echo message="compile.encode	= ${compile.encode}" />
+	</target>
+
+	<target name="init" depends="info">
+		<delete dir="${dest.dir}" />
+		<mkdir dir="${dest.dir}" />
+		<mkdir dir="${classes.dir}" />
+		<mkdir dir="${destLib.dir}" />
+	</target>
+
+	<target name="compile" depends="init" description="--> 编译源代码，不包括测试代码">
+		<!-- 编译Java源文件  -->
+		<!-- 给编译器指定编码，防止出现：“警告：编码 GBK 的不可映射字符” -->
+		<!-- <javac srcdir="${src.dir}" encoding="${compile.encode}" destdir="${classes.dir}" -->
+		<javac encoding="${compile.encode}" destdir="${classes.dir}" memorymaximumsize="1024m" debug="${compile.debug}" deprecation="${compile.deprecation}" optimize="${compile.optimize}" includeantruntime="false">
+			<compilerarg value="${compile.arg1}" />
+			<src refid="src.path" />
+			<classpath refid="compile.classpath" />
+			<include name="**/**" />
+			<!--exclude name="${src.exclude}/**" /-->
+		</javac>
+	</target>
+
+	<target name="build" depends="compile" description="--> To .jar file">
+		<!-- create a property containing all .jar files, prefix lib/, and seperated with a space -->
+		<!-- 把lib目录下的所有jar加到 Class-Path里 -->
+		<pathconvert property="libs.project" pathsep=" ">
+			<mapper>
+				<chainedmapper>
+					<!-- remove absolute path -->
+					<flattenmapper />
+					<!-- add lib/ prefix -->
+					<globmapper from="*" to="../lib/*" />
+				</chainedmapper>
+			</mapper>
+			<path>
+				<!-- lib.home contains all jar files, in several subdirectories -->
+				<fileset dir="${lib.dir}">
+					<include name="**/*.jar" />
+				</fileset>
+			</path>
+		</pathconvert>
+
+		<!-- 日期的相关信息-->
+		<tstamp>
+			<format property="TODAY" pattern="yyyy-MM-dd" locale="cn" />
+		</tstamp>
+		<tstamp>
+			<format property="NOW" pattern="yyyy-MM-dd HH-mm-ss" locale="cn" />
+		</tstamp>
+
+		<jar jarfile="${jar_name}" basedir="${classes.dir}">
+			<manifest>
+				<section name="${component.name}">
+					<attribute name="Implementation-Title" value="${component.name}" />
+					<attribute name="Implementation-Version" value="${component.version}" />
+					<attribute name="Implementation-Vendor" value="${component.vendor}" />
+					<attribute name="Implementation-Time" value="${TODAY}" />
+				</section>
+
+				<attribute name="Main-Class" value="${main.class}" />
+				<!-- 在Class-Path最后加了 “.” "../../common/lib/sms-hbase/native"为硬编码-->
+				<attribute name="Class-Path" value="${libs.project} ../" />
+			</manifest>
+		</jar>
+		<!-- 删除编译中间产生的classes文件-->
+		<delete dir="${classes.dir}" />
+	</target>
+
+	<target name="totest" depends="build" description="--> To test server">
+		<!-- 配置过滤文件 -->
+		<filter filtersfile="filter.properties"/> 
+
+		<!-- 复制配置文件 -->
+		<copy todir="${dest.dir}/etc" overwrite="yes" filtering="true" encoding="UTF-8" outputencoding="UTF-8">
+			<fileset dir="${basedir}/../etc">
+				<include name="**/*.xml" />
+				<include name="**/*.properties" />
+				<include name="**/*.conf" />
+				<include name="**/*.txt" />
+				<exclude name="build.*" />
+				<exclude name="sh/**" />
+			</fileset>
+		</copy>
+		<copy todir="${dest.dir}/daemon" overwrite="yes" filtering="true">
+			<fileset dir="${basedir}/../daemon">
+				<include name="**/*" />
+			</fileset>
+		</copy>
+		<copy todir="${dest.dir}/script" overwrite="yes" filtering="true">
+			<fileset dir="${basedir}/../script">
+				<include name="**/*" />
+			</fileset>
+		</copy>
+		<copy todir="${dest.dir}/version" overwrite="yes" filtering="true">
+			<fileset dir="${basedir}/../version">
+				<include name="**/*" />
+			</fileset>
+		</copy>
+		<copy todir="${dest.dir}/../" overwrite="yes" filtering="true">
+			<fileset dir="${basedir}/../">
+				<include name="*.sh" />
+			</fileset>
+		</copy>
+
+		<copy todir="${dest.dir}/lib" overwrite="yes">
+			<fileset dir="${lib.dir}">
+				<include name="**" />
+			</fileset>
+		</copy>
+		
+		<!--  复制当前文件夹下的文件 -->
+				<copy todir="${bin.dir}" overwrite="yes">
+					<fileset dir="${basedir}">
+						<include name="VOIPSpmsAdapter.properties" />
+					</fileset>
+				</copy>
+				<copy file="${basedir}/VOIPAdapter.sh" tofile="${bin.dir}/VOIPAdapter.sh" filtering="true"/>
+		<copy todir="${dest.dir}/bin" overwrite="yes">
+					<fileset dir="${bin.dir}">
+						<include name="**" />
+					</fileset>
+				</copy>
+	</target>
+
+	<target name="clean" depends="totest">
+	</target>
+</project>

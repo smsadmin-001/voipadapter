@@ -1,0 +1,9 @@
+#! /bin/sh
+# installed service name
+INSTALL_SERVICE_NAME=VOIPAdapter
+# jar full name
+JAR_SERVICE_NAME=voip-adapter.jar
+
+cd  /u01/$INSTALL_SERVICE_NAME/bin/
+JAVA_CMD="java -Dfile.encoding=UTF-8 -Xmx3g -cp $JAR_SERVICE_NAME com.iplustek.work.Main"
+exec $JAVA_CMD 1>>/log/$INSTALL_SERVICE_NAME/$INSTALL_SERVICE_NAME.log 2>&1

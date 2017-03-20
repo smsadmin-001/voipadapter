@@ -1,0 +1,9 @@
+#! /bin/sh
+# original name
+ORI_SERVICE_NAME=VOIPAdapter
+
+mydir=$(cd "$(dirname "$0")";pwd)
+cd $mydir
+
+./stop-$ORI_SERVICE_NAME
+./start-$ORI_SERVICE_NAME

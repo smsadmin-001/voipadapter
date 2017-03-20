@@ -1,0 +1,14 @@
+#! /bin/sh
+# installed service name
+INSTALL_SERVICE_NAME=VOIPAdapter
+
+cd /service
+
+if [ "$(id -u)" != "0" ]; 
+   then
+   	sudo svstat  $INSTALL_SERVICE_NAME
+   else
+	  svstat  $INSTALL_SERVICE_NAME
+fi
+
+

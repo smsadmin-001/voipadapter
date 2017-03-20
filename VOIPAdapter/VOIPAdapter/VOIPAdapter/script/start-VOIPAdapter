@@ -1,0 +1,49 @@
+#! /bin/sh
+# installed service name
+INSTALL_SERVICE_NAME=VOIPAdapter
+
+cd /service
+
+sudo /usr/local/bin/svc -u $INSTALL_SERVICE_NAME
+
+###########################
+function CheckUp()
+{
+time=$1
+shift
+sleep $time
+ret=0
+for Process in $@
+{
+	echo $Process
+	pid1=$(pgrep $Process -f)
+	echo $pid1
+	if [ "$pid1" == "" ]
+	then
+		echo "Attention:The Process $Process is Down !!!"
+		ret=1
+	else
+		sleep $time
+		pid2=$(pgrep $Process -f)
+		if [ "$pid1" != "$pid2" ]
+		then
+			echo "Attention:The Process $Process is Not Normal !!!"
+			ret=1
+		else
+			echo "Congratulation,The Process $Process Has Been Started Successfully"
+		fi
+	fi
+}
+return $ret
+}
+
+sleep 3
+svstat $INSTALL_SERVICE_NAME
+
+if [ $? != 0 ]
+then
+	exit 1
+else
+	exit 0
+fi
+###########################
